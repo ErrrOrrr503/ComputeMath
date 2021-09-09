@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import matplotlib.pyplot as plt
+import math
 import numpy as np
 
 #<functions>
@@ -21,8 +22,8 @@ x_low = -5
 x_high = 5
 y_low = -1.5
 y_high = 1.5
-x_num = 20
-x_num_max = 100
+x_num = 100
+x_num_max = 100 #min is 30
 x_data = np.linspace (x_low, x_high, x_num)
 x_delta = (x_high - x_low) / (x_num - 1)
 #</dimensions>
@@ -140,6 +141,7 @@ h_data = (x_high - x_low) / n_data
 #<dF mistake graph>
 plt.subplot (223)
 plt.grid (True)
+plt.yscale ('log')
 plt.xscale ('log')
 for i in range (4, x_num_max):
     temp_x_data = np.linspace (x_low, x_high, i)
@@ -149,22 +151,36 @@ for i in range (4, x_num_max):
     temp_x_data = np.linspace (x_low, x_high, i)
     dy_data[i - 4] = D_y (temp_x_data, Oright_dy (temp_x_data, F (temp_x_data)), dF (temp_x_data))
 plt.plot (n_data, dy_data, 'g.')
+kdy = (math.log (dy_data[x_num_max - 5]) - math.log (dy_data[math.floor (0.7 * (x_num_max - 5))])) / (math.log (n_data[x_num_max - 5]) - math.log (n_data[math.floor (0.7 * (x_num_max - 5))]))
+plt.text (n_data[math.floor(0.7 * (x_num_max - 5))], dy_data[math.floor(0.7 * (x_num_max - 5))],  '{:.6f}'.format(kdy))
 for i in range (4, x_num_max):
     temp_x_data = np.linspace (x_low, x_high, i)
     dy_data[i - 4] = D_y (temp_x_data, O2_dy (temp_x_data, F (temp_x_data)), dF (temp_x_data))
 plt.plot (n_data, dy_data, 'm-')
 plt.plot (n_data, h_data, 'c-')
+kh = (math.log (h_data[x_num_max - 5]) - math.log (h_data[math.floor (0.7 * (x_num_max - 5))])) / (math.log (n_data[x_num_max - 5]) - math.log (n_data[math.floor (0.7 * (x_num_max - 5))]))
+plt.text (n_data[0], dy_data[10] / 10, 'kdy_O1 / kh = ' + '{:.6f}'.format(kdy / kh))
+kdy = (math.log (dy_data[x_num_max - 5]) - math.log (dy_data[math.floor (0.7 * (x_num_max - 5))])) / (math.log (n_data[x_num_max - 5]) - math.log (n_data[math.floor (0.7 * (x_num_max - 5))]))
+plt.text (n_data[math.floor(0.7 * (x_num_max - 5))], dy_data[math.floor(0.7 * (x_num_max - 5))],  '{:.6f}'.format(kdy))
+plt.text (n_data[math.floor(0.7 * (x_num_max - 5))], h_data[math.floor(0.7 * (x_num_max - 5))], '{:.6f}'.format(kh))
+plt.text (n_data[0], dy_data[10] / 20, 'kdy_O2 / kh = ' + '{:.6f}'.format(kdy / kh))
 #</dF mistake graph>
 
 #<d2F mistake graph>
 plt.subplot (224)
 plt.grid (True)
 plt.xscale ('log')
+plt.yscale ('log')
 for i in range (4, x_num_max):
     temp_x_data = np.linspace (x_low, x_high, i)
     dy_data[i - 4] = D_y (temp_x_data, O2_d2y_fixed_h (temp_x_data, F (temp_x_data)), d2F (temp_x_data))
 plt.plot (n_data, dy_data, 'm-')
 plt.plot (n_data, h_data, 'c-')
+kh = (math.log (h_data[x_num_max - 5]) - math.log (h_data[math.floor (0.7 * (x_num_max - 5))])) / (math.log (n_data[x_num_max - 5]) - math.log (n_data[math.floor (0.7 * (x_num_max - 5))]))
+plt.text (n_data[math.floor(0.7 * (x_num_max - 5))], h_data[math.floor(0.7 * (x_num_max - 5))],  '{:.6f}'.format(kh))
+kd2y = (math.log (dy_data[x_num_max - 5]) - math.log (dy_data[math.floor (0.7 * (x_num_max - 5))])) / (math.log (n_data[x_num_max - 5]) - math.log (n_data[math.floor (0.7 * (x_num_max - 5))]))
+plt.text (n_data[math.floor(0.7 * (x_num_max - 5))], dy_data[math.floor(0.7 * (x_num_max - 5))],  '{:.6f}'.format(kd2y))
+plt.text (n_data[0], dy_data[10] / 20, 'k2dy / kh = ' + '{:.6f}'.format(kd2y / kh))
 #</d2F mistake graph>
 
 plt.show ()
