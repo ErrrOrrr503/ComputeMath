@@ -20,6 +20,8 @@ class matrix {
         void scan (std::istream& in);
         void swap_colons (size_t first, size_t second);
         void change_colon (size_t colon_num, const std::vector<num_t>& new_colon);
+        void conv_to_upper_triangle ();
+        std::vector<num_t>& conv_to_upper_triangle_with_colon (std::vector<num_t> &colon);
         num_t det ();
 
         // doorka inducted successfully, for 'operator[][]'
@@ -59,10 +61,12 @@ matrix<num_t>::~matrix ()
 template <typename num_t>
 void matrix<num_t>::print (std::ostream& out)
 {
-    //out.width (_print_width);
     for (size_t i = 0; i < _lines; i++) {
-        for (size_t j = 0; j < _colons; j++)
+        for (size_t j = 0; j < _colons; j++) {
+            out.width (_print_width);
+            out.setf (std::ios::right);
             out << _arr[i * _colons + j] << "   ";
+        }
         out <<std::endl;
     }
 }
@@ -152,4 +156,25 @@ num_t matrix<num_t>::_det (matrix& m)
             det += m[i][0] * _det (mi);
     }
     return det;
+}
+
+template <typename num_t>
+void matrix<num_t>::conv_to_upper_triangle ()
+{
+    std::vector<num_t> tmp (_lines);
+    conv_to_upper_triangle_with_colon (tmp);
+}
+
+template <typename num_t>
+std::vector<num_t>& matrix<num_t>::conv_to_upper_triangle_with_colon (std::vector<num_t> &colon)
+{
+    for (size_t i = 0; i < std::min (_lines, _colons); i++) {
+        for (size_t j = i + 1; j < _lines; j++) {
+            num_t mul = _arr[i * _colons + i] / _arr[j * _colons + i];
+            for (size_t k = 0; k < _colons; k++)
+                _arr[j * _colons + k] = _arr[j * _colons + k] * mul - _arr[i * _colons + k];
+            colon[j] = colon[j] * mul - colon[i];
+        }
+    }
+    return colon;
 }
