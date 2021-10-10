@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cstring>
 
 template <typename num_t>
 class matrix {
@@ -12,12 +13,16 @@ class matrix {
     public:
         matrix () = delete;
         matrix (size_t lines, size_t colons);
+        matrix (matrix<num_t>& m);
         ~matrix ();
 
         size_t lines ();
         size_t colons ();
+        const num_t* data();
         void print (std::ostream& out);
         void scan (std::istream& in);
+        void print ();
+        void scan ();
         void swap_colons (size_t first, size_t second);
         void change_colon (size_t colon_num, const std::vector<num_t>& new_colon);
         void conv_to_upper_triangle ();
@@ -53,6 +58,15 @@ matrix<num_t>::matrix (size_t lines, size_t colons)
 }
 
 template <typename num_t>
+matrix<num_t>::matrix (matrix<num_t>& m)
+{
+    _arr = new num_t[m.lines () * m.colons ()];
+    _lines = m.lines ();
+    _colons = m.colons ();
+    std::memcpy (_arr, m.data (), _lines * _colons * sizeof (num_t));
+}
+
+template <typename num_t>
 matrix<num_t>::~matrix ()
 {
     delete[] _arr;
@@ -78,6 +92,18 @@ void matrix<num_t>::scan (std::istream& in)
         for (size_t j = 0; j < _colons; j++)
             in >> _arr[i * _colons + j];
     }
+}
+
+template <typename num_t>
+void matrix<num_t>::print ()
+{
+    print (std::cout);
+}
+
+template <typename num_t>
+void matrix<num_t>::scan ()
+{
+    scan (std::cin);
 }
 
 template <typename num_t>
@@ -117,6 +143,12 @@ num_t matrix<num_t>::det ()
     if (_lines != _colons)
         throw std::runtime_error ("Matrix should be square to calculate determinant!");
     return _det (*this);
+}
+
+template <typename num_t>
+const num_t* matrix<num_t>::data ()
+{
+    return _arr;
 }
 
 template <typename num_t>

@@ -1,14 +1,12 @@
-#include "matrix.h"
+#include "linearsystem.h"
 
 int main ()
 {
-    matrix<float> A (3, 4);
-    A.scan (std::cin);
-    std::cout << "A = " << std::endl;
-    A.print (std::cout);
-    //float det = A.det ();
-    //std::cout << "|A| = " << det << std::endl;
-    A.conv_to_upper_triangle ();
-    std::cout << "A.up_t = " << std::endl;
-    A.print (std::cout);
+    linearsystem<float> syslin (3);
+    syslin.scan ();
+    std::cout << "syslin = " << std::endl;
+    syslin.print ();
+    syslin.solve_gauss ();
+    syslin.print_ans ();
+    return 0;
 }
