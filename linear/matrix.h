@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <cmath>
 
 template <typename num_t>
 class matrix {
@@ -9,12 +10,18 @@ class matrix {
         size_t _lines;
         size_t _colons;
         size_t _print_width = 4;
+        num_t _prec = 1e-8;
+
         num_t _det (matrix& m);
+        num_t _relative_distance_to_one (num_t a);
     public:
         matrix () = delete;
         matrix (size_t lines, size_t colons);
         matrix (matrix<num_t>& m);
         ~matrix ();
+
+        int float_cmp (num_t fl1, num_t fl2);
+        num_t vector_metrics_compare (const std::vector<num_t>& v1, const std::vector<num_t>& v2);
 
         size_t lines ();
         size_t colons ();
@@ -70,6 +77,16 @@ template <typename num_t>
 matrix<num_t>::~matrix ()
 {
     delete[] _arr;
+}
+
+template <typename num_t>
+int matrix<num_t>::float_cmp (num_t fl1, num_t fl2)
+{
+    if (fl1 - fl2 > _prec)
+        return 1;
+    if (fl1 - fl2 < -_prec)
+        return -1;
+    return 0;
 }
 
 template <typename num_t>
@@ -198,14 +215,63 @@ void matrix<num_t>::conv_to_upper_triangle ()
 }
 
 template <typename num_t>
+num_t matrix<num_t>::_relative_distance_to_one (num_t a)
+{
+    if (a > 1)
+        return 1 - 1/a;
+    if (a < -1)
+        return 1 + 1/a;
+    if (a > 0)
+        return 1 - a;
+    return 1 + a;
+}
+
+template <typename num_t>
+num_t matrix<num_t>::vector_metrics_compare (const std::vector<num_t>& v1, const std::vector<num_t>& v2)
+{
+    if (v1.size () != v2.size ())
+        throw std::runtime_error ("Vectors for comparing should be equally dimensioned!");
+    num_t metrics = 0;
+    for (size_t i = 0; i < v1.size (); i++) {
+        num_t tmp = fabs (v1[i] - v2[i]);
+        if (tmp > metrics)
+            metrics = tmp;
+    }
+    return metrics;
+}
+
+template <typename num_t>
 std::vector<num_t>& matrix<num_t>::conv_to_upper_triangle_with_colon (std::vector<num_t> &colon)
 {
     for (size_t i = 0; i < std::min (_lines, _colons); i++) {
+        // locate most favorable line for division by M[i][i]
+        num_t dist = _relative_distance_to_one (_arr[i * _colons + i]);
+        size_t new_i = i;
         for (size_t j = i + 1; j < _lines; j++) {
-            num_t mul = _arr[i * _colons + i] / _arr[j * _colons + i];
+            num_t tmp_dist = _relative_distance_to_one (_arr[j * _colons + i]);
+            if (tmp_dist < dist) {
+                dist = tmp_dist;
+                new_i = j;
+            }
+        }
+        // swap [i] and most favorable lines
+        if (new_i != i) {
+            num_t tmp;
+            for (size_t k = 0; k < _colons; k++) {
+                tmp = _arr[i * _colons + k];
+                _arr[i * _colons + k] = _arr[new_i * _colons + k];
+                _arr[new_i * _colons + k] = tmp;
+            }
+            tmp = colon[i];
+            colon[i] = colon[new_i];
+            colon[new_i] = tmp;
+        }
+        // convert
+        for (size_t j = i + 1; j < _lines; j++) {
+            num_t mul = _arr[j * _colons + i] / _arr[i * _colons + i];
             for (size_t k = 0; k < _colons; k++)
-                _arr[j * _colons + k] = _arr[j * _colons + k] * mul - _arr[i * _colons + k];
-            colon[j] = colon[j] * mul - colon[i];
+                _arr[j * _colons + k] = _arr[j * _colons + k] - _arr[i * _colons + k] * mul;
+            colon[j] = colon[j] - colon[i] * mul;
         }
     }
     return colon;
