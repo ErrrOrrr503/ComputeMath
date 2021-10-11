@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 #include <cstring>
 #include <cmath>
@@ -10,7 +11,7 @@ class matrix {
         size_t _lines;
         size_t _colons;
         size_t _print_width = 4;
-        num_t _prec = 1e-8;
+        num_t _prec = 1e-10;
 
         num_t _det (matrix& m);
         num_t _relative_distance_to_one (num_t a);
@@ -33,6 +34,7 @@ class matrix {
         void swap_colons (size_t first, size_t second);
         void change_colon (size_t colon_num, const std::vector<num_t>& new_colon);
         void conv_to_upper_triangle ();
+        std::vector<num_t> mul_colon (const std::vector<num_t> colon);
         std::vector<num_t>& conv_to_upper_triangle_with_colon (std::vector<num_t> &colon);
         num_t det ();
 
@@ -275,4 +277,18 @@ std::vector<num_t>& matrix<num_t>::conv_to_upper_triangle_with_colon (std::vecto
         }
     }
     return colon;
+}
+
+template<typename num_t>
+std::vector<num_t> matrix<num_t>::mul_colon (const std::vector<num_t> colon)
+{
+    if (_colons != colon.size ())
+        throw std::runtime_error ("wrong vector dimenson for multiplication");
+    std::vector<num_t> ans (_lines);
+    for (size_t i = 0; i < _lines; i++) {
+        ans[i] = 0;
+        for (size_t j = 0; j < _colons; j++)
+            ans[i] += _arr[i * _colons + j] * colon[j];
+    }
+    return ans;
 }

@@ -1,8 +1,16 @@
 #include "linearsystem.h"
 
+/* TODO:
+prec = 0;
+verboseness;
+check for det > 0 && symmetry
+*/
+
 int main ()
 {
-    linearsystem<float> syslin (3);
+    size_t dim;
+    std::cin >> dim;
+    linearsystem<double> syslin (dim);
     syslin.scan ();
     std::cout << "syslin = " << std::endl;
     syslin.print ();
@@ -17,6 +25,9 @@ int main ()
     syslin.print_ans ();
     std::cout << std::endl << "Seidel: " <<std::endl;
     syslin.solve_seidel (100, 1e-6);
+    syslin.print_ans ();
+    std::cout << std::endl << "fastest descend: " <<std::endl;
+    syslin.solve_fastest_descend (10000000, 0);
     syslin.print_ans ();
     return 0;
 }

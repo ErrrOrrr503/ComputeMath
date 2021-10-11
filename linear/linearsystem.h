@@ -3,11 +3,12 @@
 template <typename num_t>
 class linearsystem {
     private:
+        int _verboseness = 1;
+        size_t _print_width = 4;
+        size_t _N;
         matrix<num_t> _matrix;
         std::vector<num_t> _colon;
         std::vector<num_t> _ans;
-        size_t _N;
-        size_t _print_width = 4;
     public:
         linearsystem () = delete;
         linearsystem (size_t N);
@@ -15,6 +16,7 @@ class linearsystem {
         void solve_gauss ();
         void solve_jacobi (size_t iterations, num_t precision);
         void solve_seidel (size_t iterations, num_t precision);
+        void solve_fastest_descend (size_t iterations, num_t precision);
         bool check_jacobi ();
         void print (std::ostream& out);
         void scan (std::istream& in);
@@ -22,6 +24,7 @@ class linearsystem {
         void scan ();
         void print_ans (std::ostream& out);
         void print_ans ();
+        void set_verboseness (int verboseness);
 };
 
 template <typename num_t>
@@ -178,6 +181,54 @@ std::cout << std::endl <<"iterations = " << i << std::endl << "precision = " << 
     _ans = *xi_1;
 }
 
+template<typename num_t>
+void linearsystem<num_t>::solve_fastest_descend (size_t iterations, num_t precision)
+{
+    std::vector<num_t> x_even (_N), x_uneven (_N);
+    for (size_t i = 0; i < _N; i++) {
+        x_uneven[i] = 0;
+        x_even[i] = precision + precision;
+    }
+    bool watch_precision = 1;
+    if (precision == 0)
+        watch_precision = 0;
+    size_t i = 0;
+    num_t metrics = 0;
+    std::vector<num_t> *xi = nullptr, *xi_1 = nullptr;
+    for (i = 0; (((metrics = _matrix.vector_metrics_compare (x_uneven, x_even)) > precision) || !watch_precision) && i < iterations; i++) {
+        if (i % 2) {
+            xi = &x_even;
+            xi_1 = &x_uneven;
+        }
+        else {
+            xi = &x_uneven;
+            xi_1 = &x_even;
+        }
+        std::vector<num_t> ri (_matrix.mul_colon (*xi));
+        for (size_t j = 0; j < ri.size (); j++)
+            ri[j] -= _colon[j];
+        num_t scalar_mul_ri_ri = 0, scalar_mul_Ari_ri;
+        std::vector<num_t> Ari (_matrix.mul_colon (ri));
+        for (size_t j = 0; j < ri.size (); j++) {
+            scalar_mul_ri_ri += ri[j] * ri[j];
+            scalar_mul_Ari_ri += Ari[j] * ri[j];
+        }
+        num_t ti = scalar_mul_ri_ri / scalar_mul_Ari_ri;
+        for (size_t j = 0; j < xi->size (); j++)
+            (*xi_1)[j] = (*xi)[j] - ti * ri[j];
+
+        if (_verboseness == 2) {
+            std::cout << "x" << i + 1 << " = ";
+            for (size_t i = 0; i < (*xi_1).size (); i++)
+                std::cout << (*xi_1)[i] << " ";
+            std::cout << std::endl;
+        }
+    }
+    if (_verboseness == 1)
+        std::cout << std::endl <<"iterations = " << i << std::endl << "precision = " << metrics << std::endl;
+    _ans = *xi_1;
+}
+
 template <typename num_t>
 void linearsystem<num_t>::print_ans (std::ostream& out)
 {
@@ -189,4 +240,10 @@ template <typename num_t>
 void linearsystem<num_t>::print_ans ()
 {
     print_ans (std::cout);
+}
+
+template <typename num_t>
+void linearsystem<num_t>::set_verboseness (int verboseness)
+{
+    _verboseness = verboseness;
 }
