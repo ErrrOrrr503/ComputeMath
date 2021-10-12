@@ -283,7 +283,7 @@ template<typename num_t>
 std::vector<num_t> matrix<num_t>::mul_colon (const std::vector<num_t> colon)
 {
     if (_colons != colon.size ())
-        throw std::runtime_error ("wrong vector dimenson for multiplication");
+        throw std::runtime_error ("wrong vector dimension for multiplication");
     std::vector<num_t> ans (_lines);
     for (size_t i = 0; i < _lines; i++) {
         ans[i] = 0;
