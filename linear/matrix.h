@@ -37,6 +37,8 @@ class matrix {
         std::vector<num_t> mul_colon (const std::vector<num_t> colon);
         std::vector<num_t>& conv_to_upper_triangle_with_colon (std::vector<num_t> &colon);
         num_t det ();
+        int is_symmetric ();
+        num_t calculate_machinery_precision ();
 
         // doorka inducted successfully, for 'operator[][]'
         num_t& elem (size_t i, size_t j);
@@ -64,6 +66,7 @@ matrix<num_t>::matrix (size_t lines, size_t colons)
     _arr = new num_t[lines * colons];
     _lines = lines;
     _colons = colons;
+    _prec = 5 * calculate_machinery_precision ();
 }
 
 template <typename num_t>
@@ -291,4 +294,33 @@ std::vector<num_t> matrix<num_t>::mul_colon (const std::vector<num_t> colon)
             ans[i] += _arr[i * _colons + j] * colon[j];
     }
     return ans;
+}
+
+template <typename num_t>
+int matrix<num_t>::is_symmetric ()
+{
+    if (_lines != _colons)
+        return 0;
+    if (_lines == 1)
+        return 1;
+    int sym_antisym = 1;
+    if (_arr[0 * _colons + 1] == -_arr[1 * _colons + 0])
+        sym_antisym = -1;
+    for (size_t i = 0; i < _lines - 1; i++) {
+        for (size_t j = i + 1; j < _colons; j++) {
+            if (_arr[i * _colons + j] != sym_antisym * _arr[j * _colons + i])
+                return 0;
+        }
+    }
+    return sym_antisym;
+}
+
+template <typename num_t>
+num_t matrix<num_t>::calculate_machinery_precision ()
+{
+    num_t a = 1;
+    num_t b = 1;
+    while (a + b != a)
+        b /= 10;
+    return b;
 }

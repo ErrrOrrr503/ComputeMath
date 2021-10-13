@@ -1,37 +1,45 @@
 #include "linearsystem.h"
 
-/* TODO:
-prec = 0;
-verboseness;
-check for det > 0 && symmetry
-get rid of copypaste in iteration and variation methods
-*/
+typedef long double floating;
 
 int main ()
 {
     size_t dim;
     std::cin >> dim;
-    linearsystem<double> syslin (dim);
+    linearsystem<floating> syslin (dim);
+    floating prec_machinery = syslin.calculate_machinery_precision ();
+    std::cout.setf (std::ios::scientific);
+    std::cout << "Machinery precision = " << prec_machinery << std::endl;
+    std::cout.unsetf (std::ios::scientific);
+    syslin.set_verboseness (1);
     syslin.scan ();
     std::cout << "syslin = " << std::endl;
     syslin.print ();
+    //gauss
+    std::cout << std::endl << "Gauss" << std:: endl;
     syslin.solve_gauss ();
     syslin.print_ans ();
-    std::cout << std::endl << "jacobi: " <<std::endl;
-    if (!syslin.check_jacobi ())
-        std::cout << "Hadamard condition is not met! Discrepancy is inevitable!" << std::endl;
+    //iteration
+        if (!syslin.check_jacobi ())
+        std::cout << std::endl << "Hadamard condition is not met! Discrepancy is likely!" << std::endl;
     else
-        std::cout << "Hadamard condition is met! Discrepancy is highly unlikely." << std::endl;
-    syslin.solve_jacobi (100, 1e-6);
+        std::cout << std::endl << "Hadamard condition is met! Discrepancy is highly unlikely." << std::endl;
+    std::cout << "jacobi: " <<std::endl;
+    syslin.solve_jacobi (100, 5 * prec_machinery);
     syslin.print_ans ();
     std::cout << std::endl << "Seidel: " <<std::endl;
-    syslin.solve_seidel (100, 1e-6);
+    syslin.solve_seidel (100, 5 * prec_machinery);
     syslin.print_ans ();
-    std::cout << std::endl << "fastest descend: " <<std::endl;
-    syslin.solve_fastest_descend (10000, 0);
+    //variation
+    if (!syslin.check_variation_methods ())
+        std::cout << std::endl << "Enough condition for variation methods is not met! Discrepancy is likely!" << std::endl;
+    else
+        std::cout << std::endl << "Enough condition for variation methods is met! Discrepancy is highly unlikely." << std::endl;
+    std::cout << "fastest descend: " <<std::endl;
+    syslin.solve_fastest_descend (10000, 20 * prec_machinery);
     syslin.print_ans ();
     std::cout << std::endl << "least residuals: " <<std::endl;
-    syslin.solve_least_residuals (10000, 0);
+    syslin.solve_least_residuals (10000, 20 * prec_machinery);
     syslin.print_ans ();
     return 0;
 }
