@@ -4,7 +4,7 @@ template <typename num_t>
 class linearsystem {
     private:
         int _verboseness = 1;
-        size_t _print_width = 4;
+        size_t _print_width = 6;
         size_t _N;
         matrix<num_t> _matrix;
         std::vector<num_t> _colon;
@@ -23,8 +23,10 @@ class linearsystem {
         void solve_seidel (size_t iterations, num_t precision);
         void solve_fastest_descend (size_t iterations, num_t precision);
         void solve_least_residuals (size_t iterations, num_t precision);
+        void solve_run_through ();
         bool check_jacobi ();
         bool check_variation_methods ();
+        bool check_run_through ();
         void print (std::ostream& out);
         void scan (std::istream& in);
         void print ();
@@ -274,4 +276,32 @@ template <typename num_t>
 num_t linearsystem<num_t>::calculate_machinery_precision ()
 {
     return _matrix.calculate_machinery_precision ();
+}
+
+template <typename num_t>
+void linearsystem<num_t>::solve_run_through ()
+{
+    std::vector<num_t> ai(_N), bi(_N);
+    ai[1] = -_matrix[0][1] / _matrix[0][0];
+    bi[1] = _colon[0] / _matrix[0][0];
+    for (size_t i = 1; i < _N - 1; i++) {
+        ai[i + 1] = -_matrix[i][i + 1] / (_matrix[i][i - 1] * ai[i] + _matrix[i][i]);
+        bi[i + 1] = (_colon[i] - _matrix[i][i - 1] * bi[i]) / (_matrix[i][i - 1] * ai[i] + _matrix[i][i]);
+    }
+    _ans[_N - 1] = (_colon[_N - 1] - _matrix[_N - 1][_N - 2] * bi[_N - 1]) / (_matrix[_N - 1][_N - 2] * ai[_N - 1] + _matrix[_N - 1][_N - 1]);
+    for (ssize_t i = _N - 2; i >= 0; i--)
+        _ans[i] = ai[i + 1] * _ans[i + 1] + bi[i + 1];
+    if (_verboseness == 2) {
+        std::cout << "Run-through coefficients:" << std::endl;
+        for (size_t i = 1; i < _N; i++) {
+            std::cout << "a[" << i <<"] = " << ai[i] << "    ";
+            std::cout << "b[" << i <<"] = " << bi[i] << std::endl;
+        }
+    }
+}
+
+template <typename num_t>
+bool linearsystem<num_t>::check_run_through ()
+{
+    return _matrix.is_3_diag ();
 }

@@ -39,6 +39,7 @@ class matrix {
         num_t det ();
         int is_symmetric ();
         num_t calculate_machinery_precision ();
+        bool is_3_diag ();
 
         // doorka inducted successfully, for 'operator[][]'
         num_t& elem (size_t i, size_t j);
@@ -323,4 +324,18 @@ num_t matrix<num_t>::calculate_machinery_precision ()
     while (a + b != a)
         b /= 10;
     return b;
+}
+
+template <typename num_t>
+bool matrix<num_t>::is_3_diag ()
+{
+    if (_lines != _colons)
+        return false;
+    if (_lines <= 2)
+        return true;
+    for (size_t i = 2; i < _lines; i++)
+        for (size_t j = 0; j < i - 1; j++)
+            if (_arr[i * _colons + j] || _arr[j * _colons + i])
+                return false;
+    return true;
 }
