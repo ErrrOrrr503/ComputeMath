@@ -35,6 +35,7 @@ class linearsystem {
         void print_ans ();
         void set_verboseness (int verboseness);
         num_t calculate_machinery_precision ();
+        num_t calculate_conditionality_number ();
 };
 
 template <typename num_t>
@@ -304,4 +305,10 @@ template <typename num_t>
 bool linearsystem<num_t>::check_run_through ()
 {
     return _matrix.is_3_diag ();
+}
+
+template <typename num_t>
+num_t linearsystem<num_t>::calculate_conditionality_number ()
+{
+    return _matrix.calculate_conditionality_number ();
 }

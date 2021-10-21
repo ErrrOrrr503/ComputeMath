@@ -14,6 +14,7 @@ class matrix {
         num_t _prec = 1e-10;
 
         num_t _det (matrix& m);
+        num_t _calculate_minor (matrix& m, size_t i, size_t j);
         num_t _relative_distance_to_one (num_t a);
     public:
         matrix () = delete;
@@ -23,6 +24,7 @@ class matrix {
 
         int float_cmp (num_t fl1, num_t fl2);
         num_t vector_metrics_compare (const std::vector<num_t>& v1, const std::vector<num_t>& v2);
+        num_t matrix_metrics_1 ();
 
         size_t lines ();
         size_t colons ();
@@ -37,6 +39,8 @@ class matrix {
         std::vector<num_t> mul_colon (const std::vector<num_t> colon);
         std::vector<num_t>& conv_to_upper_triangle_with_colon (std::vector<num_t> &colon);
         num_t det ();
+        matrix<num_t> inverse_matrix ();
+        num_t calculate_conditionality_number ();
         int is_symmetric ();
         num_t calculate_machinery_precision ();
         bool is_3_diag ();
@@ -184,6 +188,27 @@ template <typename num_t>
 size_t matrix<num_t>::colons ()
 {
     return _colons;
+}
+
+template <typename num_t>
+num_t matrix<num_t>::_calculate_minor (matrix& m, size_t i, size_t j)
+{
+    matrix<num_t> mij(m.lines() - 1, m.colons() - 1);
+    for (size_t k = 0; k < i; k++) {
+        for (size_t l = 0; l < j; l++)
+            mij[k][l] = m[k][l];
+        for (size_t l = j; l < m.colons () - 1; l++)
+            mij[k][l] = m[k][l + 1];
+    }
+    for (size_t k = i; k < m.lines() - 1; k++) {
+        for (size_t l = 0; l < j; l++)
+            mij[k][l] = m[k + 1][l];
+        for (size_t l = j; l < m.colons () - 1; l++)
+            mij[k][l] = m[k + 1][l + 1];
+    }
+    if ((i + j) % 2)
+        return -_det (mij);
+    return _det (mij);
 }
 
 template <typename num_t>
@@ -338,4 +363,41 @@ bool matrix<num_t>::is_3_diag ()
             if (_arr[i * _colons + j] || _arr[j * _colons + i])
                 return false;
     return true;
+}
+
+template <typename num_t>
+matrix<num_t> matrix<num_t>::inverse_matrix ()
+{
+    if (_lines != _colons)
+        throw std::runtime_error ("Matrix should be square to calculate invrse matrix!");
+    matrix<num_t> inverse (_lines, _colons);
+    num_t D = det ();
+    for (size_t k = 0; k < _lines; k++)
+        for (size_t l = 0; l < _colons; l++)
+            inverse[k][l] = _calculate_minor (*this, k, l) / D;
+//std::cout << std::endl << "Inverse matrix | det = " << D << " = " << std::endl;
+//inverse.print ();
+//std::cout << std::endl;
+    return inverse;
+}
+
+template <typename num_t>
+num_t matrix<num_t>::matrix_metrics_1 ()
+{
+    num_t metric = 0, temp = 0;
+    for (size_t i = 0; i < _lines; i++) {
+        temp = 0;
+        for (size_t j = 0; j < _colons; j++)
+            temp += _arr[i * _colons + j];
+        if (temp > metric)
+            metric = temp;
+    }
+    return metric;
+}
+
+template <typename num_t>
+num_t matrix<num_t>::calculate_conditionality_number ()
+{
+    matrix<num_t> inverse (inverse_matrix ());
+    return matrix_metrics_1 () * inverse.matrix_metrics_1 ();
 }

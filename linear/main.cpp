@@ -1,6 +1,6 @@
 #include "linearsystem.h"
 
-typedef long double floating;
+typedef double floating;
 
 /*
 todo: неваязка
@@ -20,6 +20,12 @@ int main ()
     syslin.scan ();
     std::cout << "syslin = " << std::endl;
     syslin.print ();
+    floating conditionality_number = syslin.calculate_conditionality_number ();
+    std::cout << "conditionality number = " << conditionality_number << std::endl;
+    if (conditionality_number < 10)
+        std::cout << "conditionality number good" << std::endl;
+    else
+        std::cout << "conditionality number bad" << std::endl;
     //gauss
     std::cout << std::endl << "Gauss" << std:: endl;
     syslin.solve_gauss ();
