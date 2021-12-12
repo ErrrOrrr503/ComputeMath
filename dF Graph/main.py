@@ -44,6 +44,7 @@ plt.grid (True)
 #<presize dF/dx>
 plt.plot (x_data, dF (x_data), 'b-')
 #</presize dF/dx>
+#</dF/dx>
 
 #<O(h) right (Fi+1 - Fi) / h>
 def Oright_dy (x_data, y_data): # differentiating net-function (сеточная ф-ция)
