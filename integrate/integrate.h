@@ -252,14 +252,14 @@ public:
                 num_t edge = 1;
                 do {
                     edge *= 2;
-                    I1 = func.eps_func (1e8) - func.eps_func (edge);
+                    I1 = func.eps_func (1e20) - func.eps_func (edge);
                 } while (fabsl (I1) > precision / 2);
                 improper_edge = edge;
             }
             netfunc<num_t> proper_f (func.ref_func, func.x_min, improper_edge, 100);
             integrator<num_t> I2_integrator (proper_f);
             I2_integrator.enable_runge (precision / 2);
-            I2_integrator.integrate_rectangles ();
+            I2_integrator.integrate_simpson ();
             I2 = I2_integrator.ans;
         }
         else {
@@ -275,14 +275,14 @@ public:
                 num_t edge = -1;
                 do {
                     edge *= 2;
-                    I1 = func.eps_func (edge) - func.eps_func (-1e8);
+                    I1 = func.eps_func (edge) - func.eps_func (-1e20);
                 } while (fabsl (I1) > precision / 2);
                 improper_edge = edge;
             }
             netfunc<num_t> proper_f (func.ref_func, improper_edge, func.x_max, 100);
             integrator<num_t> I2_integrator (proper_f);
             I2_integrator.enable_runge (precision / 2);
-            I2_integrator.integrate_rectangles ();
+            I2_integrator.integrate_simpson ();
             I2 = I2_integrator.ans;
         }
         ans = I1 + I2;

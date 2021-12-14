@@ -51,6 +51,7 @@ flt F (flt x)
 int main ()
 {
     //proper 
+    cout.precision (15);
     netfunc<flt> f (F, 0, 1, 10);
     integrator<flt> I (f);
     I.integrate_rectangles ();
@@ -61,7 +62,7 @@ int main ()
         cout << I.get_err () << endl;
     else 
         cout << "Integral simpson = " << I.ans << endl;
-    I.enable_runge (1e-15);
+    I.enable_runge (1e-10);
     I.integrate_rectangles ();
     cout << "Integral rectangles runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << endl;
     I.integrate_trapezoids ();
@@ -82,7 +83,7 @@ int main ()
     //finite left
     netfunc<flt> net_fin_left (fin_left, fin_helper_left, 0, 1, improper_left);
     integrator<flt> Im_fin_left (net_fin_left);
-    if (Im_fin_left.integrate_improper (1e-2))
+    if (Im_fin_left.integrate_improper (1e-3))
         cout << Im_fin_left.get_err () << endl;
     else
         cout << "Integral improper finite left = " << Im_fin_left.ans << " edge = " << Im_fin_left.improper_edge << endl;
@@ -90,7 +91,7 @@ int main ()
     //finite right
     netfunc<flt> net_fin_right (fin_right, fin_helper_right, -1, 0, improper_right);
     integrator<flt> Im_fin_right (net_fin_right);
-    if (Im_fin_right.integrate_improper (1e-2))
+    if (Im_fin_right.integrate_improper (1e-3))
         cout << Im_fin_right.get_err () << endl;
     else
         cout << "Integral improper finite right = " << Im_fin_right.ans << " edge = " << Im_fin_right.improper_edge << endl;
@@ -98,7 +99,7 @@ int main ()
     //infinite left
     netfunc<flt> net_inf_left (inf_left, inf_helper_left, NAN, 0, improper_left);
     integrator<flt> Im_inf_left (net_inf_left);
-    if (Im_inf_left.integrate_improper (1e-2))
+    if (Im_inf_left.integrate_improper (1e-5))
         cout << Im_inf_left.get_err () << endl;
     else
         cout << "Integral improper infinite left = " << Im_inf_left.ans << " edge = " << Im_inf_left.improper_edge << endl;
@@ -106,7 +107,7 @@ int main ()
     //infinite right
     netfunc<flt> net_inf_right (inf_right, inf_helper_right, 0, NAN, improper_right);
     integrator<flt> Im_inf_right (net_inf_right);
-    if (Im_inf_right.integrate_improper (1e-2))
+    if (Im_inf_right.integrate_improper (1e-5))
         cout << Im_inf_right.get_err () << endl;
     else
         cout << "Integral improper infinite right = " << Im_inf_right.ans << " edge = " << Im_inf_right.improper_edge << endl;
