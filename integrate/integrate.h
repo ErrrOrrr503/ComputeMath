@@ -50,6 +50,8 @@ public:
             throw std::runtime_error ("number of points in netsize must be greater than 1");
         netsize = netsz;
         h = (x_max - x_min) / (netsz - 1);
+        x_data.clear ();
+        f_data.clear ();
         for (size_t i = 0; i < netsz; i++) {
             x_data.push_back (x_min + (num_t) (i) / (num_t) (netsz - 1) * (x_max - x_min));
             f_data.push_back (ref_func (x_data[i]));
@@ -65,7 +67,7 @@ class integrator {
 private:
     netfunc<num_t> func;
     bool use_runge = 0;
-    size_t max_iterations = 20;
+    size_t max_iterations = 10;
     num_t precision = 0;
     std::string errstr;
 

@@ -43,10 +43,15 @@ flt inf_helper_right (flt x)
     return -exp(-x);
 }
 
+flt F (flt x)
+{
+    return  3 * x * x;
+}
+
 int main ()
 {
-    //proper
-    netfunc<flt> f (sin, 0, 2, 5);
+    //proper 
+    netfunc<flt> f (F, 0, 1, 10);
     integrator<flt> I (f);
     I.integrate_rectangles ();
     cout << "Integral rectangles = " << I.ans << endl;
@@ -56,7 +61,7 @@ int main ()
         cout << I.get_err () << endl;
     else 
         cout << "Integral simpson = " << I.ans << endl;
-    I.enable_runge (1e-3);
+    I.enable_runge (1e-15);
     I.integrate_rectangles ();
     cout << "Integral rectangles runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << endl;
     I.integrate_trapezoids ();
