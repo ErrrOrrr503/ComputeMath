@@ -52,7 +52,7 @@ int main ()
 {
     //proper 
     cout.precision (15);
-    netfunc<flt> f (F, 0, 1, 10);
+    netfunc<flt> f (exp, 0, 1, 10);
     integrator<flt> I (f);
     I.integrate_rectangles ();
     cout << "Integral rectangles = " << I.ans << endl;
@@ -64,13 +64,13 @@ int main ()
         cout << "Integral simpson = " << I.ans << endl;
     I.enable_runge (1e-10);
     I.integrate_rectangles ();
-    cout << "Integral rectangles runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << endl;
+    cout << "Integral rectangles runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << " order = " << I.order << endl;
     I.integrate_trapezoids ();
-    cout << "Integral trapezoids runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << endl;
+    cout << "Integral trapezoids runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << " order = " << I.order << endl;
     if (I.integrate_simpson ())
         cout << I.get_err () << endl;
     else
-        cout << "Integral simpson runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << endl;
+        cout << "Integral simpson runge = " << I.ans << " runge = " << I.runge << " iterations = " << I.iterations << " order = " << I.order << endl;
     I.assume_pure_net ();
     I.integrate_rectangles ();
     cout << "Integral rectangles pure net = " << I.ans << endl;

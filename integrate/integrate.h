@@ -67,7 +67,7 @@ class integrator {
 private:
     netfunc<num_t> func;
     bool use_runge = 0;
-    size_t max_iterations = 10;
+    size_t max_iterations = 20;
     num_t precision = 0;
     std::string errstr;
 
@@ -76,6 +76,7 @@ public:
     num_t runge = 0;
     size_t iterations = 0;
     num_t improper_edge = 0;
+    num_t order = 0;
 
     integrator () = delete;
     integrator (netfunc<num_t> f) : func (f)
@@ -128,14 +129,19 @@ public:
                 for (size_t i = 0; i < func.netsize - 1; i++)
                     I += func.ref_func ((func.x_data[i] + func.x_data[i + 1]) / 2);
                 I *= func.h;
+                num_t D = I - I_2h;
+                num_t D_2h = 0;
                 for (size_t i = 0; i < max_iterations && precision < fabsl ((I - I_2h)); i++) {
                     I_2h = I;
                     I = 0;
+                    D_2h = D;
                     func.build_net (func.netsize + func.netsize - 1);
                     for (size_t i = 0; i < func.netsize - 1; i++)
                         I += func.ref_func ((func.x_data[i] + func.x_data[i + 1]) / 2);
                     I *= func.h;
                     iterations = i + 2;
+                    D = I - I_2h;
+                    order = log2 (D_2h / D);
                 }
                 func.build_net (old_netsize);
                 runge = (I - I_2h) / 3;
@@ -169,14 +175,19 @@ public:
             for (size_t i = 0; i < func.netsize - 1; i++)
                 I += (func.f_data[i] + func.f_data[i + 1]);
             I *= func.h / 2;
+            num_t D = I - I_2h;
+            num_t D_2h = 0;
             for (size_t i = 0; i < max_iterations && precision < fabsl ((I - I_2h)); i++) {
                 I_2h = I;
                 I = 0;
+                D_2h = D;
                 func.build_net (func.netsize + func.netsize - 1);
                 for (size_t i = 0; i < func.netsize - 1; i++)
                     I += (func.f_data[i] + func.f_data[i + 1]);
                 I *= func.h / 2;
                 iterations = i + 2;
+                D = I - I_2h;
+                order = log2 (D_2h / D);
             }
             func.build_net (old_netsize);
             runge = (I - I_2h) / 3;
@@ -205,14 +216,19 @@ public:
                 for (size_t i = 0; i < func.netsize - 1; i++)
                     I += (func.f_data[i] + func.f_data[i + 1] + 4 * func.ref_func((func.x_data[i] + func.x_data[i + 1]) / 2));
                 I *= func.h / 6;
+                num_t D = I - I_2h;
+                num_t D_2h = 0;
                 for (size_t i = 0; i < max_iterations && precision < fabsl (I - I_2h); i++) {
                     I_2h = I;
                     I = 0;
+                    D_2h = D;
                     func.build_net (func.netsize + func.netsize - 1);
                     for (size_t i = 0; i < func.netsize - 1; i++)
                         I += func.h * (func.f_data[i] + func.f_data[i + 1] + 4 * func.ref_func((func.x_data[i] + func.x_data[i + 1]) / 2));
                     I /= 6;
                     iterations = i + 2;
+                    D = I - I_2h;
+                    order = log2 (D_2h / D);
                 }
                 func.build_net (old_netsize);
                 runge = (I - I_2h) / 15;
