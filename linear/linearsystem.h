@@ -89,8 +89,15 @@ void linearsystem<num_t>::scan ()
 template <typename num_t>
 void linearsystem<num_t>::print_ans (std::ostream& out)
 {
-    for (size_t i = 0; i < _N; i++)
-        out << "x" << i << " = " << _ans[i] << std::endl;
+    if (_verboseness) {
+        for (size_t i = 0; i < _N; i++)
+            out << "x" << i << " = " << _ans[i] << std::endl;
+    }
+    else {
+        for (size_t i = 0; i < _N; i++)
+            out << _ans[i] << ' ';
+        out << std::endl;
+    }
 }
 
 template <typename num_t>
