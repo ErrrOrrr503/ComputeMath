@@ -3,6 +3,9 @@
 #include <vector>
 #include <cstring>
 #include <cmath>
+#ifdef OMP
+#include <omp.h>
+#endif
 
 template <typename num_t>
 class matrix {
@@ -12,38 +15,49 @@ class matrix {
         size_t _colons;
         size_t _print_width = 4;
         num_t _prec = 1e-10;
+        int _verboseness = 1;
 
         num_t _det (matrix& m);
         num_t _calculate_minor (matrix& m, size_t i, size_t j);
         num_t _relative_distance_to_one (num_t a);
     public:
+        bool _arr_is_custom = 0;
         matrix () = delete;
         matrix (size_t lines, size_t colons);
-        matrix (matrix<num_t>& m);
+        matrix (size_t lines, size_t colons, num_t prec);
+        matrix (size_t lines, size_t colons, num_t *custom_arr);
+        matrix (const matrix<num_t>& m);
         ~matrix ();
 
         int float_cmp (num_t fl1, num_t fl2);
         num_t vector_metrics_compare (const std::vector<num_t>& v1, const std::vector<num_t>& v2);
         num_t matrix_metrics_1 ();
 
-        size_t lines ();
-        size_t colons ();
+        size_t lines () const;
+        size_t colons () const;
         const num_t* data();
-        void print (std::ostream& out);
+        void print (std::ostream& out) const ;
         void scan (std::istream& in);
-        void print ();
+        void random_generate ();
+        void print () const;
         void scan ();
         void swap_colons (size_t first, size_t second);
         void change_colon (size_t colon_num, const std::vector<num_t>& new_colon);
         void conv_to_upper_triangle ();
-        std::vector<num_t> mul_colon (const std::vector<num_t> colon);
+        std::vector<num_t> mul_colon (const std::vector<num_t> &colon);
         std::vector<num_t>& conv_to_upper_triangle_with_colon (std::vector<num_t> &colon);
+        matrix<num_t> transpose () const;
         num_t det ();
         matrix<num_t> inverse_matrix ();
         num_t calculate_conditionality_number ();
         int is_symmetric ();
         num_t calculate_machinery_precision ();
         bool is_3_diag ();
+        void set_verboseness (int verboseness);
+        num_t* matrix_c_array_WARNING_rw ();
+        const num_t* matrix_c_array () const;
+
+        //friend matrix<num_t> operator* (const matrix<num_t>& M1, const matrix<num_t>& M2);
 
         // doorka inducted successfully, for 'operator[][]'
         num_t& elem (size_t i, size_t j);
@@ -61,7 +75,127 @@ class matrix {
         {
             return matrix_line (*this, i);
         }
+
+        friend matrix<num_t> operator+ (const matrix<num_t>& M1, const matrix<num_t>& M2)
+        {
+            return add (M1, M2);
+        }
+        friend matrix<num_t> operator- (const matrix<num_t>& M1, const matrix<num_t>& M2)
+        {
+            return sub (M1, M2);
+        }
+        friend matrix<num_t> operator* (const matrix<num_t>& M1, const matrix<num_t>& M2)
+        {
+            return line_mul (M1, M2);
+        }
 };
+
+template <typename num_t>
+matrix<num_t> add (const matrix<num_t>& M1, const matrix<num_t>& M2)
+{
+    if (M1.colons () != M2.colons () || M1.lines () != M2.lines ())
+        throw std::runtime_error ("Summed matrixes should have same sizes!");
+    size_t colons = M1.colons ();
+    size_t lines = M1.lines ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M1.colons ());
+    num_t *p_M = M.matrix_c_array_WARNING_rw ();
+    const num_t *p_M1 = M1.matrix_c_array ();
+    const num_t *p_M2 = M2.matrix_c_array ();
+    #ifdef OMP
+    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines)
+    #endif
+    for (size_t i = 0; i < lines; i++) {
+        size_t temp = i * colons;
+        num_t *p_M_i = p_M + temp;
+        const num_t *p_M1_i = p_M1 + temp;
+        const num_t *p_M2_i = p_M2 + temp;
+        for (size_t j = 0; j < colons; j++) {
+            p_M_i[j] = p_M1_i[j] + p_M2_i[j];
+        }
+    }
+}
+
+template <typename num_t>
+matrix<num_t> sub (const matrix<num_t>& M1, const matrix<num_t>& M2)
+{
+    if (M1.colons () != M2.colons () || M1.lines () != M2.lines ())
+        throw std::runtime_error ("Summed matrixes should have same sizes!");
+    size_t colons = M1.colons ();
+    size_t lines = M1.lines ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M1.colons ());
+    num_t *p_M = M.matrix_c_array_WARNING_rw ();
+    const num_t *p_M1 = M1.matrix_c_array ();
+    const num_t *p_M2 = M2.matrix_c_array ();
+    #ifdef OMP
+    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines)
+    #endif
+    for (size_t i = 0; i < lines; i++) {
+        size_t temp = i * colons;
+        num_t *p_M_i = p_M + temp;
+        const num_t *p_M1_i = p_M1 + temp;
+        const num_t *p_M2_i = p_M2 + temp;
+        for (size_t j = 0; j < colons; j++) {
+            p_M_i[j] = p_M1_i[j] - p_M2_i[j];
+        }
+    }
+}
+
+template <typename num_t>
+matrix<num_t> line_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
+{
+    if (M1.colons () != M2.lines () || M1.lines () != M2.colons ())
+        throw std::runtime_error ("Multiplying matrixes should have corresponding sizes!");
+    matrix<num_t> T = M2.transpose ();
+    const num_t *p_T = T.matrix_c_array ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M2.colons ());
+    num_t *p_M = M.matrix_c_array_WARNING_rw ();
+    const num_t *p_M1 = M1.matrix_c_array ();
+    size_t lines = M.lines ();
+    size_t colons = M.colons ();
+    size_t reduced_colons = M1.colons ();
+    #ifdef OMP
+    #pragma omp parallel for simd shared (p_M1, p_T, p_M, colons, lines, reduced_colons)
+    #endif
+    for (size_t i = 0; i < lines; i++) {
+        num_t *p_M_i = p_M + i * colons;
+        const num_t *p_M1_i = p_M1 + i * reduced_colons;
+        for (size_t j = 0; j < colons; j++) {
+            num_t *p_M_ij = p_M_i + j;
+            const num_t *p_T_j = p_T + j * reduced_colons;
+            for (size_t k = 0; k < reduced_colons; k++)
+                *p_M_ij += p_M1_i[k] * p_T_j[k];
+        }
+    }
+    return M;
+}
+
+template <typename num_t>
+matrix<num_t> plain_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
+{
+    if (M1.colons () != M2.lines () || M1.lines () != M2.colons ())
+        throw std::runtime_error ("Multiplying matrixes should have corresponding sizes!");
+    const num_t *p_M2 = M2.matrix_c_array ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M2.colons ());
+    num_t *p_M = M.matrix_c_array_WARNING_rw ();
+    const num_t *p_M1 = M1.matrix_c_array ();
+    size_t lines = M.lines ();
+    size_t colons = M.colons ();
+    size_t reduced_colons = M1.colons ();
+    #ifdef OMP
+    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines, reduced_colons)
+    #endif
+    for (size_t i = 0; i < lines; i++) {
+        num_t *p_M_i = p_M + i * colons;
+        const num_t *p_M1_i = p_M1 + i * reduced_colons;
+        for (size_t j = 0; j < colons; j++) {
+            num_t *p_M_ij = p_M_i + j;
+            const num_t *p_M2_j = p_M2 + j;
+            for (size_t k = 0; k < reduced_colons; k++)
+                *p_M_ij += p_M1_i[k] * p_M2_j[k * reduced_colons];
+        }
+    }
+    return M;
+}
 
 template <typename num_t>
 matrix<num_t>::matrix (size_t lines, size_t colons)
@@ -75,18 +209,70 @@ matrix<num_t>::matrix (size_t lines, size_t colons)
 }
 
 template <typename num_t>
-matrix<num_t>::matrix (matrix<num_t>& m)
+matrix<num_t>::matrix (size_t lines, size_t colons, num_t prec) : _lines (lines), _colons (colons), _prec (prec)
 {
-    _arr = new num_t[m.lines () * m.colons ()];
+    _arr = new num_t[lines * colons];
+}
+
+template <typename num_t>
+matrix<num_t>::matrix (size_t lines, size_t colons, num_t *custom_arr)
+{
+    if (!(lines && colons))
+        throw std::runtime_error ("Matrix dimensions must be grater 0!");
+    _arr = custom_arr;
+    _arr_is_custom = 1;
+    _lines = lines;
+    _colons = colons;
+    _prec = 5 * calculate_machinery_precision ();
+}
+
+template <typename num_t>
+matrix<num_t>::matrix (const matrix<num_t>& m)
+{
     _lines = m.lines ();
     _colons = m.colons ();
-    std::memcpy (_arr, m.data (), _lines * _colons * sizeof (num_t));
+    if (!m._arr_is_custom)
+        _arr = new num_t[m.lines () * m.colons ()];
+    std::memcpy (_arr, m.matrix_c_array (), _lines * _colons * sizeof (num_t));
 }
 
 template <typename num_t>
 matrix<num_t>::~matrix ()
 {
-    delete[] _arr;
+    if (!_arr_is_custom)
+        delete[] _arr;
+}
+
+template <typename num_t>
+num_t* matrix<num_t>::matrix_c_array_WARNING_rw ()
+{
+    return _arr;
+}
+
+template <typename num_t>
+const num_t* matrix<num_t>::matrix_c_array () const
+{
+    return _arr;
+}
+
+template <typename num_t>
+void matrix<num_t>::random_generate ()
+{
+    #ifdef OMP
+    #pragma omp parallel for shared (_arr)
+    #endif
+    for (size_t i = 0; i < _lines; i++) {
+        num_t *_arr_i = _arr + i * _colons;
+        for (size_t j = 0; j < _colons; j++) {
+            _arr_i[j] = rand();
+        }
+    }
+}
+
+template <typename num_t>
+void matrix<num_t>::set_verboseness (int verboseness)
+{
+    _verboseness = verboseness;
 }
 
 template <typename num_t>
@@ -100,15 +286,27 @@ int matrix<num_t>::float_cmp (num_t fl1, num_t fl2)
 }
 
 template <typename num_t>
-void matrix<num_t>::print (std::ostream& out)
+void matrix<num_t>::print (std::ostream& out) const
 {
-    for (size_t i = 0; i < _lines; i++) {
-        for (size_t j = 0; j < _colons; j++) {
-            out.width (_print_width);
-            out.setf (std::ios::right);
-            out << _arr[i * _colons + j] << "   ";
+    if (_verboseness > 0) {
+        for (size_t i = 0; i < _lines; i++) {
+            for (size_t j = 0; j < _colons; j++) {
+                out.width (_print_width);
+                out.setf (std::ios::right);
+                out << _arr[i * _colons + j] << "   ";
+            }
+            out <<std::endl;
         }
-        out <<std::endl;
+    }
+    if (_verboseness == 0) {
+        for (size_t i = 0; i < _lines; i++) {
+            for (size_t j = 0; j < _colons; j++) {
+                out.width (12);
+                out.setf (std::ios::right);
+                out << _arr[i * _colons + j] << " ";
+            }
+            out <<std::endl;
+        }
     }
 }
 
@@ -122,7 +320,7 @@ void matrix<num_t>::scan (std::istream& in)
 }
 
 template <typename num_t>
-void matrix<num_t>::print ()
+void matrix<num_t>::print () const
 {
     print (std::cout);
 }
@@ -135,8 +333,10 @@ void matrix<num_t>::scan ()
 
 template <typename num_t>
 num_t& matrix<num_t>::elem (size_t i, size_t j) {
+    if (_arr == NULL)
+        throw std::runtime_error ("trying to index uninit matrix");
     if (i >= _lines || j >= _colons)
-        throw std::runtime_error ("Invalid index!");
+        throw std::runtime_error ("Invalid index at elem method: i = " + std::to_string (i) + " j = " + std::to_string (j)+ " lines = " + std::to_string (_lines)+ " colons = " + std::to_string (_colons));
     return _arr[i * _colons + j];
 }
 
@@ -165,6 +365,24 @@ void matrix<num_t>::change_colon (size_t colon_num, const std::vector<num_t>& ne
 }
 
 template <typename num_t>
+matrix<num_t> matrix<num_t>::transpose () const
+{
+    matrix<num_t> T (_colons, _lines, _prec);
+    num_t *p_T = T.matrix_c_array_WARNING_rw ();
+    #ifdef OMP
+    #pragma omp parallel for simd shared (_arr, p_T, _colons, _lines)
+    #endif
+    for (size_t i = 0; i < _lines; i++) {
+        num_t *p_T_i = p_T + i;
+        const num_t *_arr_i = _arr + i * _colons;
+        for (size_t j = 0; j < _colons; j++) {
+            p_T_i[j * _lines] = _arr_i[j];
+        }
+    }
+    return T;
+}
+
+template <typename num_t>
 num_t matrix<num_t>::det ()
 {
     if (_lines != _colons)
@@ -179,13 +397,13 @@ const num_t* matrix<num_t>::data ()
 }
 
 template <typename num_t>
-size_t matrix<num_t>::lines ()
+size_t matrix<num_t>::lines () const
 {
     return _lines;
 }
 
 template <typename num_t>
-size_t matrix<num_t>::colons ()
+size_t matrix<num_t>::colons () const
 {
     return _colons;
 }
@@ -309,7 +527,7 @@ std::vector<num_t>& matrix<num_t>::conv_to_upper_triangle_with_colon (std::vecto
 }
 
 template<typename num_t>
-std::vector<num_t> matrix<num_t>::mul_colon (const std::vector<num_t> colon)
+std::vector<num_t> matrix<num_t>::mul_colon (const std::vector<num_t> &colon)
 {
     if (_colons != colon.size ())
         throw std::runtime_error ("wrong vector dimension for multiplication");
@@ -375,9 +593,6 @@ matrix<num_t> matrix<num_t>::inverse_matrix ()
     for (size_t k = 0; k < _lines; k++)
         for (size_t l = 0; l < _colons; l++)
             inverse[k][l] = _calculate_minor (*this, k, l) / D;
-//std::cout << std::endl << "Inverse matrix | det = " << D << " = " << std::endl;
-//inverse.print ();
-//std::cout << std::endl;
     return inverse;
 }
 
