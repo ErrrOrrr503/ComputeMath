@@ -8,8 +8,9 @@ typedef double num_t;
 int main (int argc, char *argv[])
 {
     size_t lines = atoll (argv[1]), colons= atoll (argv[1]);
-    matrix<num_t> M1(lines, colons);
-    matrix<num_t> M2(colons, lines);
+    int num_threads = atoi (argv[2]);
+    matrix<num_t> M1(lines, colons, num_threads);
+    matrix<num_t> M2(colons, lines, num_threads);
     M1.random_generate ();
     M2.random_generate ();
 

@@ -17,6 +17,10 @@ class matrix {
         num_t _prec = 1e-10;
         int _verboseness = 1;
 
+        #ifdef OMP
+        int _num_threads = 0;
+        #endif
+
         num_t _det (matrix& m);
         num_t _calculate_minor (matrix& m, size_t i, size_t j);
         num_t _relative_distance_to_one (num_t a);
@@ -24,7 +28,9 @@ class matrix {
         bool _arr_is_custom = 0;
         matrix () = delete;
         matrix (size_t lines, size_t colons);
-        matrix (size_t lines, size_t colons, num_t prec);
+        #ifdef OMP
+        matrix (size_t lines, size_t colons, int num_threads);
+        #endif
         matrix (size_t lines, size_t colons, num_t *custom_arr);
         matrix (const matrix<num_t>& m);
         ~matrix ();
@@ -35,6 +41,7 @@ class matrix {
 
         size_t lines () const;
         size_t colons () const;
+        int num_threads () const;
         const num_t* data();
         void print (std::ostream& out) const ;
         void scan (std::istream& in);
@@ -56,8 +63,6 @@ class matrix {
         void set_verboseness (int verboseness);
         num_t* matrix_c_array_WARNING_rw ();
         const num_t* matrix_c_array () const;
-
-        //friend matrix<num_t> operator* (const matrix<num_t>& M1, const matrix<num_t>& M2);
 
         // doorka inducted successfully, for 'operator[][]'
         num_t& elem (size_t i, size_t j);
@@ -97,12 +102,18 @@ matrix<num_t> add (const matrix<num_t>& M1, const matrix<num_t>& M2)
         throw std::runtime_error ("Summed matrixes should have same sizes!");
     size_t colons = M1.colons ();
     size_t lines = M1.lines ();
+    #ifdef OMP
+    int num_threads = 0;
+    M1.num_threads () >= M2.num_threads () ? num_threads = M1.num_threads () : num_threads = M2.num_threads ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M1.colons (), num_threads);
+    #else
     matrix<num_t> M = matrix<num_t> (M1.lines (), M1.colons ());
+    #endif
     num_t *p_M = M.matrix_c_array_WARNING_rw ();
     const num_t *p_M1 = M1.matrix_c_array ();
     const num_t *p_M2 = M2.matrix_c_array ();
     #ifdef OMP
-    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines)
+    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines) num_threads (num_threads)
     #endif
     for (size_t i = 0; i < lines; i++) {
         size_t temp = i * colons;
@@ -122,12 +133,18 @@ matrix<num_t> sub (const matrix<num_t>& M1, const matrix<num_t>& M2)
         throw std::runtime_error ("Summed matrixes should have same sizes!");
     size_t colons = M1.colons ();
     size_t lines = M1.lines ();
+    #ifdef OMP
+    int num_threads = 0;
+    M1.num_threads () >= M2.num_threads () ? num_threads = M1.num_threads () : num_threads = M2.num_threads ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M1.colons (), num_threads);
+    #else
     matrix<num_t> M = matrix<num_t> (M1.lines (), M1.colons ());
+    #endif
     num_t *p_M = M.matrix_c_array_WARNING_rw ();
     const num_t *p_M1 = M1.matrix_c_array ();
     const num_t *p_M2 = M2.matrix_c_array ();
     #ifdef OMP
-    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines)
+    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines) num_threads (num_threads)
     #endif
     for (size_t i = 0; i < lines; i++) {
         size_t temp = i * colons;
@@ -147,14 +164,20 @@ matrix<num_t> line_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
         throw std::runtime_error ("Multiplying matrixes should have corresponding sizes!");
     matrix<num_t> T = M2.transpose ();
     const num_t *p_T = T.matrix_c_array ();
+    #ifdef OMP
+    int num_threads = 0;
+    M1.num_threads () >= M2.num_threads () ? num_threads = M1.num_threads () : num_threads = M2.num_threads ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M2.colons (), num_threads);
+    #else
     matrix<num_t> M = matrix<num_t> (M1.lines (), M2.colons ());
+    #endif
     num_t *p_M = M.matrix_c_array_WARNING_rw ();
     const num_t *p_M1 = M1.matrix_c_array ();
     size_t lines = M.lines ();
     size_t colons = M.colons ();
     size_t reduced_colons = M1.colons ();
     #ifdef OMP
-    #pragma omp parallel for simd shared (p_M1, p_T, p_M, colons, lines, reduced_colons)
+    #pragma omp parallel for simd shared (p_M1, p_T, p_M, colons, lines, reduced_colons) num_threads (num_threads)
     #endif
     for (size_t i = 0; i < lines; i++) {
         num_t *p_M_i = p_M + i * colons;
@@ -175,14 +198,20 @@ matrix<num_t> plain_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
     if (M1.colons () != M2.lines () || M1.lines () != M2.colons ())
         throw std::runtime_error ("Multiplying matrixes should have corresponding sizes!");
     const num_t *p_M2 = M2.matrix_c_array ();
+    #ifdef OMP
+    int num_threads = 0;
+    M1.num_threads () >= M2.num_threads () ? num_threads = M1.num_threads () : num_threads = M2.num_threads ();
+    matrix<num_t> M = matrix<num_t> (M1.lines (), M2.colons (), num_threads);
+    #else
     matrix<num_t> M = matrix<num_t> (M1.lines (), M2.colons ());
+    #endif
     num_t *p_M = M.matrix_c_array_WARNING_rw ();
     const num_t *p_M1 = M1.matrix_c_array ();
     size_t lines = M.lines ();
     size_t colons = M.colons ();
     size_t reduced_colons = M1.colons ();
     #ifdef OMP
-    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines, reduced_colons)
+    #pragma omp parallel for simd shared (p_M1, p_M2, p_M, colons, lines, reduced_colons) num_threads (num_threads)
     #endif
     for (size_t i = 0; i < lines; i++) {
         num_t *p_M_i = p_M + i * colons;
@@ -198,21 +227,28 @@ matrix<num_t> plain_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
 }
 
 template <typename num_t>
-matrix<num_t>::matrix (size_t lines, size_t colons)
+matrix<num_t>::matrix (size_t lines, size_t colons) : _lines (lines), _colons (colons)
 {
     if (!(lines && colons))
         throw std::runtime_error ("Matrix dimensions must be grater 0!");
     _arr = new num_t[lines * colons];
-    _lines = lines;
-    _colons = colons;
+    _prec = 5 * calculate_machinery_precision ();
+    #ifdef OMP
+    _num_threads = omp_get_max_threads ();
+    #endif
+}
+#ifdef OMP
+template <typename num_t>
+matrix<num_t>::matrix (size_t lines, size_t colons, int num_threads) : _lines (lines), _colons (colons), _num_threads (num_threads)
+{
+    if (!(lines && colons))
+        throw std::runtime_error ("Matrix dimensions must be grater 0!");
+    if (num_threads <= 0)
+        throw std::runtime_error ("Number of threads must be greater than 0!");
+    _arr = new num_t[lines * colons];
     _prec = 5 * calculate_machinery_precision ();
 }
-
-template <typename num_t>
-matrix<num_t>::matrix (size_t lines, size_t colons, num_t prec) : _lines (lines), _colons (colons), _prec (prec)
-{
-    _arr = new num_t[lines * colons];
-}
+#endif
 
 template <typename num_t>
 matrix<num_t>::matrix (size_t lines, size_t colons, num_t *custom_arr)
@@ -224,6 +260,9 @@ matrix<num_t>::matrix (size_t lines, size_t colons, num_t *custom_arr)
     _lines = lines;
     _colons = colons;
     _prec = 5 * calculate_machinery_precision ();
+    #ifdef OMP
+    _num_threads = omp_get_max_threads ();
+    #endif
 }
 
 template <typename num_t>
@@ -234,6 +273,9 @@ matrix<num_t>::matrix (const matrix<num_t>& m)
     if (!m._arr_is_custom)
         _arr = new num_t[m.lines () * m.colons ()];
     std::memcpy (_arr, m.matrix_c_array (), _lines * _colons * sizeof (num_t));
+    #ifdef OMP
+    _num_threads =m.num_threads();
+    #endif
 }
 
 template <typename num_t>
@@ -259,7 +301,7 @@ template <typename num_t>
 void matrix<num_t>::random_generate ()
 {
     #ifdef OMP
-    #pragma omp parallel for shared (_arr)
+    #pragma omp parallel for shared (_arr) num_threads (_num_threads)
     #endif
     for (size_t i = 0; i < _lines; i++) {
         num_t *_arr_i = _arr + i * _colons;
@@ -367,10 +409,14 @@ void matrix<num_t>::change_colon (size_t colon_num, const std::vector<num_t>& ne
 template <typename num_t>
 matrix<num_t> matrix<num_t>::transpose () const
 {
-    matrix<num_t> T (_colons, _lines, _prec);
+    #ifdef OMP
+    matrix<num_t> T (_colons, _lines, _num_threads);
+    #else
+    matrix<num_t> T (_colons, _lines);
+    #endif
     num_t *p_T = T.matrix_c_array_WARNING_rw ();
     #ifdef OMP
-    #pragma omp parallel for simd shared (_arr, p_T, _colons, _lines)
+    #pragma omp parallel for simd shared (_arr, p_T, _colons, _lines) num_threads (_num_threads)
     #endif
     for (size_t i = 0; i < _lines; i++) {
         num_t *p_T_i = p_T + i;
@@ -394,6 +440,12 @@ template <typename num_t>
 const num_t* matrix<num_t>::data ()
 {
     return _arr;
+}
+
+template <typename num_t>
+int matrix<num_t>::num_threads () const
+{
+    return _num_threads;
 }
 
 template <typename num_t>
@@ -588,7 +640,11 @@ matrix<num_t> matrix<num_t>::inverse_matrix ()
 {
     if (_lines != _colons)
         throw std::runtime_error ("Matrix should be square to calculate invrse matrix!");
+    #ifdef OMP
+    matrix<num_t> inverse (_lines, _colons, _num_threads);
+    #else
     matrix<num_t> inverse (_lines, _colons);
+    #endif
     num_t D = det ();
     for (size_t k = 0; k < _lines; k++)
         for (size_t l = 0; l < _colons; l++)
