@@ -29,9 +29,44 @@ int main (int argc, char *argv[])
     if (human_readable)
         std::cout << "Enter M2" << std::endl;
     M2.scan ();
+
+
+    std::cout << "Plain" << std::endl;
     double t_start = omp_get_wtime ();
-    matrix<num_t> M = line_mul (M1, M2);
+    matrix<num_t> M = plain_mul (M1, M2);
     double time_mul = omp_get_wtime () - t_start;
+    if (time) {
+        if (human_readable)
+            std::cout << "Consumed: " << time_mul << std::endl;
+        else
+            std::cout << time_mul << std::endl;
+    }
+    if (human_readable)
+        std::cout << "M1 * M2 = " << std::endl;
+    if (!time || human_readable)
+        M.print ();
+
+
+    std::cout << "Line" << std::endl;
+    t_start = omp_get_wtime ();
+    M = line_mul (M1, M2);
+    time_mul = omp_get_wtime () - t_start;
+    if (time) {
+        if (human_readable)
+            std::cout << "Consumed: " << time_mul << std::endl;
+        else
+            std::cout << time_mul << std::endl;
+    }
+    if (human_readable)
+        std::cout << "M1 * M2 = " << std::endl;
+    if (!time || human_readable)
+        M.print ();
+
+
+    std::cout << "Strassen" << std::endl;
+    t_start = omp_get_wtime ();
+    M = strassen_mul (M1, M2);
+    time_mul = omp_get_wtime () - t_start;
     if (time) {
         if (human_readable)
             std::cout << "Consumed: " << time_mul << std::endl;
