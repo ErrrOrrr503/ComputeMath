@@ -7,9 +7,31 @@
 #include <omp.h>
 #endif
 
+/*
+ * Possible defines:
+ * OMP - compile with Openmp
+ * OMP_TARGET - compile with OpenMP target devices (gpu, fpga) support. Tested only for nvidia nvptx cuda11 sm_61.
+*/
+
 #ifndef TRIVIAL_MUL_BOUND
 #define TRIVIAL_MUL_BOUND  1025 //33 is perfect for ryzen single core
 #endif
+
+static inline unsigned long xorshf96()
+{
+    static unsigned long x=123456789, y=362436069, z=521288629;
+    unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+    t = x;
+    x = y;
+    y = z;
+    z = t ^ x ^ y;
+
+    return z;
+}
 
 template <typename num_t>
 class matrix {
@@ -59,6 +81,9 @@ class matrix {
         std::vector<num_t> mul_colon (const std::vector<num_t> &colon);
         std::vector<num_t>& conv_to_upper_triangle_with_colon (std::vector<num_t> &colon);
         matrix<num_t> transpose () const;
+        #ifdef OMP_TARGET
+        matrix<num_t> transpose_target () const;
+        #endif
         matrix<num_t> make_2ek_square() const;
         num_t det ();
         matrix<num_t> inverse_matrix () const;
@@ -234,6 +259,57 @@ matrix<num_t> sub (const matrix<num_t>& M1, const matrix<num_t>& M2)
     return M;
 }
 
+#ifdef OMP
+#ifdef OMP_TARGET
+template <typename num_t>
+matrix<num_t> omp_target_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
+{
+    if (M1.colons () != M2.lines () || M1.lines () != M2.colons ())
+        throw std::runtime_error ("Multiplying matrixes should have corresponding sizes!");
+    matrix<num_t> T (std::move (M2.transpose_target ())); // already includes OMP_TARGET case
+    const num_t *p_T = T.matrix_c_array ();
+    int num_threads = 0;
+    M1.num_threads () >= M2.num_threads () ? num_threads = M1.num_threads () : num_threads = M2.num_threads ();
+    matrix<num_t> M (M1.lines (), M2.colons (), num_threads);
+    num_t *p_M = M.matrix_c_array_WARNING_rw ();
+    const num_t *p_M1 = M1.matrix_c_array ();
+    size_t lines = M.lines ();
+    size_t colons = M.colons ();
+    size_t reduced_colons = M1.colons ();
+
+    size_t i = 0, j = 0, k = 0;
+    num_t *p_M_i = nullptr;
+    const num_t *p_M1_i = nullptr;
+    num_t *p_M_ij = nullptr;
+    const num_t *p_T_j = nullptr;
+
+    #pragma omp target map (from:p_M[0:M.lines()*M.colons()]) map(to:p_M1[0:M1.lines()*M1.colons()],p_T[0:T.lines()*T.colons()],colons,lines,reduced_colons,i,j,k,p_M_i,p_M1_i,p_M_ij,p_T_j)
+	#pragma omp teams distribute parallel for shared (p_M1, p_T, p_M, colons, lines, reduced_colons) private (p_M_i, p_M1_i, p_M_ij, p_T_j) num_teams (768) thread_limit (1)
+    for (i = 0; i < lines; i++) {
+        p_M_i = p_M + i * colons;
+        p_M1_i = p_M1 + i * reduced_colons;
+        for (j = 0; j < colons; j++) {
+            p_M_ij = p_M_i + j;
+            p_T_j = p_T + j * reduced_colons;
+            for (k = 0; k < reduced_colons; k++)
+                *p_M_ij += p_M1_i[k] * p_T_j[k];
+        }
+    }
+    /*
+    // In fact as fast as upper one implementation. nvcc rules.
+    for (i = 0; i < lines; i++) {
+        for (j = 0; j < colons; j++) {
+            #pragma omp simd
+            for (k = 0; k < reduced_colons; k++)
+                p_M[i * colons + j] += p_M1[i * reduced_colons + k] * p_T[j * reduced_colons + k];
+        }
+    }
+    */
+    return M;
+}
+#endif
+#endif
+
 template <typename num_t>
 matrix<num_t> strassen_mul (const matrix<num_t>& M1, const matrix<num_t>& M2)
 {
@@ -250,7 +326,7 @@ matrix<num_t> strassen_mul_2ek (const matrix<num_t>& M1_s, const matrix<num_t>& 
 {
     if (M1_s.lines () <= TRIVIAL_MUL_BOUND)
         return line_mul (M1_s, M2_s);
-    
+
     size_t N_2 = M1_s.lines () >> 1;
 
     matrix<num_t> A11 (std::move (M1_s.submatrix (0, 0, N_2, N_2)));
@@ -479,7 +555,7 @@ void matrix<num_t>::random_generate ()
     for (size_t i = 0; i < _lines; i++) {
         num_t *_arr_i = _arr + i * _colons;
         for (size_t j = 0; j < _colons; j++) {
-            _arr_i[j] = rand();
+            _arr_i[j] = xorshf96();
         }
     }
 }
@@ -603,6 +679,32 @@ matrix<num_t> matrix<num_t>::transpose () const
     }
     return T;
 }
+
+#ifdef OMP_TARGET
+template <typename num_t>
+matrix<num_t> matrix<num_t>::transpose_target () const
+{
+    matrix<num_t> T (_colons, _lines, _num_threads);
+    num_t *p_T = T.matrix_c_array_WARNING_rw ();
+
+    size_t i = 0, j = 0;
+    num_t *p_T_i = nullptr;
+    const num_t *_arr_i = nullptr;
+
+    #pragma omp target map(from:p_T[0:T.lines()*T.colons()]) map(to:_arr[0:_lines*_colons],_colons,_lines,i,j,p_T_i,_arr_i)
+	#pragma omp teams distribute parallel for private (p_T_i, _arr_i) num_teams (768) thread_limit (1)
+    for (i = 0; i < _lines; i++) {
+        p_T_i = p_T + i;
+        _arr_i = _arr + i * _colons;
+        #pragma omp simd
+        for (j = 0; j < _colons; j++) {
+            p_T_i[j * _lines] = _arr_i[j];
+        }
+    }
+    return T;
+}
+#endif
+
 
 template <typename num_t>
 num_t matrix<num_t>::det ()

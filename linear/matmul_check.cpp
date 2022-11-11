@@ -1,6 +1,7 @@
 #include <iostream>
 
 #define OMP
+#define OMP_TARGET
 #include "matrix.h"
 
 typedef double num_t;
@@ -66,6 +67,21 @@ int main (int argc, char *argv[])
     std::cout << "Strassen" << std::endl;
     t_start = omp_get_wtime ();
     M = strassen_mul (M1, M2);
+    time_mul = omp_get_wtime () - t_start;
+    if (time) {
+        if (human_readable)
+            std::cout << "Consumed: " << time_mul << std::endl;
+        else
+            std::cout << time_mul << std::endl;
+    }
+    if (human_readable)
+        std::cout << "M1 * M2 = " << std::endl;
+    if (!time || human_readable)
+        M.print ();
+
+    std::cout << "Target" << std::endl;
+    t_start = omp_get_wtime ();
+    M = omp_target_mul (M1, M2);
     time_mul = omp_get_wtime () - t_start;
     if (time) {
         if (human_readable)
